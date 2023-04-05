@@ -34,6 +34,10 @@ cd .build/release
 cp -f Readometer /usr/local/bin/readometer
 ```
 
+### Preview
+
+![readometer_demo](https://user-images.githubusercontent.com/3415400/230220947-19d63ef3-824c-4813-9964-85cf700a99d2.gif)
+
 
 ### Development
 
