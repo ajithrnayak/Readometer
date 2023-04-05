@@ -97,8 +97,9 @@ extension Readometer {
         
         static let configuration = CommandConfiguration(abstract: "Estimates Reading Time.")
         
-        @OptionGroup var options: Options
-        
+        @OptionGroup(visibility: .default)
+        var options: Options
+                
         mutating func run() throws {
             
             // Get the path to the file
@@ -117,7 +118,12 @@ extension Readometer {
             
             // Calculate the estimated reading time in minutes
             let wordCount = Readometer.wordCount(from: plainText)
-            let readingTime = Double(wordCount) / Double(Readometer.Estimate.averageReadingSpeed)
+            let avgSpeed = Readometer.Estimate.averageReadingSpeed
+            let readingTime = Double(wordCount) / Double(avgSpeed)
+            
+            if options.verbose {
+                print("Word count/Avg Reading Speed: \(wordCount)/\(avgSpeed)")
+            }
             
             print("✨✨✨\nEstimated reading time: \(Int(readingTime.rounded())) minutes\n✨✨✨")
         }
@@ -127,7 +133,8 @@ extension Readometer {
         
         public static let configuration = CommandConfiguration(abstract: "Word Counter.")
         
-        @OptionGroup var options: Options
+        @OptionGroup(visibility: .default)
+        var options: Options
         
         mutating func run() throws {
             
@@ -162,13 +169,13 @@ extension Readometer {
     }
     
     struct Options: ParsableArguments {
-        @Argument var filePath: FilePath?
+        @Flag(name: .shortAndLong, help: "Show status updates for debugging purposes.")
+        var verbose: Bool = false
+        
+        @Argument(help: "The input file path.") var filePath: FilePath?
         
         @Option(name: [.short, .customLong("input")], help: "A path to a file to read.")
         var inputFilePath: FilePath?
-        
-        @Flag(name: .shortAndLong, help: "Show status updates for debugging purposes.")
-        var verbose = false
     }
     
     enum FileType: CaseIterable {
