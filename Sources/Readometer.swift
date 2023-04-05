@@ -10,124 +10,109 @@ import ArgumentParser
 
 @main
 struct Readometer: ParsableCommand {
+    
     static let configuration = CommandConfiguration(
         abstract: "A Swift command-line tool for estimating the reading time of articles",
         subcommands: [Estimate.self, WordCount.self],
-        defaultSubcommand: Estimate.self)
+        defaultSubcommand: Estimate.self
+    )
+    
 }
 
 extension Readometer {
-    struct FilePath: ExpressibleByArgument {
-        var pathString: String
-        
-        init?(argument: String) {
-            self.pathString = argument
-        }
-    }
-
     
-    struct Options: ParsableArguments {
-        @Argument var filePath: FilePath?
-        
-        @Option(name: [.short, .customLong("input")], help: "A path to a file to read.")
-        var inputFilePath: String?
-        
-        @Flag(name: .shortAndLong, help: "Show status updates for debugging purposes.")
-        var verbose = false
-    }
     
-    enum FileType: CaseIterable {
-        case text
-        case markdown
-        
-        init?(filePath: String) {
-            guard let type = FileType.allCases.first(where: {
-                filePath.hasSuffix($0.fileExtension)
-            }) else {
-                return nil
-            }
-            self = type
+    /// Helper function to extract contents of a given file
+    /// - Parameter filePath: A path to the file
+    /// - Returns: Text content after reading the file.
+    static func getFileContents(from filePath: FilePath?) throws -> String {
+        // Get the path to the file
+        guard let inputFile = filePath?.pathString, !inputFile.isEmpty else {
+            throw RuntimeError("Please provide the path to a file as an argument.")
         }
         
-        var fileExtension: String {
-            switch self {
-            case .text:
-                return ".txt"
-            case .markdown:
-                return ".md"
-            }
+        // Load the contents of the file into a string
+        guard let fileContents = try? String(contentsOfFile: inputFile) else {
+            throw RuntimeError("Couldn't read from '\(inputFile)'!")
         }
+        
+        // Determine file type
+        guard let fileType = FileType(filePath: inputFile) else {
+            throw RuntimeError("Unsupported file type '\(inputFile)'!")
+        }
+        
+        let plainText: String
+        
+        switch fileType {
+        case .text:
+            plainText = fileContents
+            
+        case .markdown:
+            // Strip Markdown syntax if necessary
+            guard let regex = try? NSRegularExpression(pattern: #"\[.*?\]\((.*?)\)"#) else {
+                throw RuntimeError("Failed to read Markdown file '\(inputFile)'!")
+            }
+            plainText = regex.stringByReplacingMatches(
+                in: fileContents,
+                range: NSRange(fileContents.startIndex..., in: fileContents),
+                withTemplate: "$1")
+        }
+        
+        return plainText
     }
+        
+    // MARK: - Subcommands
     
     struct Estimate: ParsableCommand {
-        // Defines the average reading speed in words per minute (wpm)
-        var averageReadingSpeed = 200
         
-        public static let configuration = CommandConfiguration(abstract: "Estimate Reading Time")
+        // Defines the average reading speed in words per minute (wpm)
+        static let averageReadingSpeed = 200
+        
+        static let configuration = CommandConfiguration(abstract: "Estimate Reading Time")
         
         @OptionGroup var options: Options
         
         mutating func run() throws {
             
             // Get the path to the file
-            var inputFile: String = options.inputFilePath ?? ""
+            var inputFile: FilePath? = options.inputFilePath
             // if users are familiar with argument, we will make their life easy.
             if let filePath = options.filePath {
-                inputFile = filePath.pathString
+                inputFile = filePath
             }
+            
+            // Extract only text contents from the file
+            let plainText = try Readometer.getFileContents(from: inputFile)
             
             if options.verbose {
-                print("Estimating reading time for '\(inputFile)'")
-            }
-            
-            // Load the contents of the file into a string
-            guard let fileContents = try? String(contentsOfFile: inputFile) else {
-                throw RuntimeError("Couldn't read from '\(inputFile)'!")
-            }
-            
-            // Determine file type
-            guard let fileType = FileType(filePath: inputFile) else {
-                throw RuntimeError("Unsupported file type '\(inputFile)'!")
-            }
-            
-            // Strip Markdown syntax if necessary
-            let plainText: String
-            switch fileType {
-            case .text:
-                plainText = fileContents
-            case .markdown:
-                guard let regex = try? NSRegularExpression(pattern: #"\[.*?\]\((.*?)\)"#) else {
-                    throw RuntimeError("Failed to read Markdown file '\(inputFile)'!")
-                }
-                plainText = regex.stringByReplacingMatches(
-                    in: fileContents,
-                    range: NSRange(fileContents.startIndex..., in: fileContents),
-                    withTemplate: "$1")
+                print("Estimating reading time for '\(String(describing: inputFile?.pathString))'")
             }
             
             // Calculate the estimated reading time in minutes
             let wordCount = plainText.components(separatedBy: .whitespacesAndNewlines).count
-            let readingTime = Double(wordCount) / Double(averageReadingSpeed)
+            let readingTime = Double(wordCount) / Double(Readometer.Estimate.averageReadingSpeed)
             
-            print("Estimated reading time: \(Int(readingTime.rounded())) minutes")
+            print("✨✨✨\nEstimated reading time: \(Int(readingTime.rounded())) minutes\n✨✨✨")
         }
     }
     
     struct WordCount: ParsableCommand {
-        // Defines the average reading speed in words per minute (wpm)
-        var averageReadingSpeed = 200
         
-        public static let configuration = CommandConfiguration(abstract: "Estimate Reading Time")
+        public static let configuration = CommandConfiguration(abstract: "Word counter")
         
         @OptionGroup var options: Options
         
         mutating func run() throws {
             
             // Get the path to the file
-            var inputFile: String = options.inputFilePath ?? ""
+            var inputFile: String? = options.inputFilePath?.pathString
             // if users are familiar with argument, we will make their life easy.
             if let filePath = options.filePath {
                 inputFile = filePath.pathString
+            }
+            
+            guard let inputFile = inputFile, !inputFile.isEmpty else {
+                throw RuntimeError("Please provide the path to a file as an argument.")
             }
             
             if options.verbose {
@@ -157,6 +142,51 @@ extension Readometer {
             print("Word Count: \(counts.count)")
         }
     }
+    
+    // MARK: - Custom Types
+    
+    struct FilePath: ExpressibleByArgument {
+        var pathString: String
+        
+        init?(argument: String) {
+            self.pathString = argument
+        }
+    }
+    
+    struct Options: ParsableArguments {
+        @Argument var filePath: FilePath?
+        
+        @Option(name: [.short, .customLong("input")], help: "A path to a file to read.")
+        var inputFilePath: FilePath?
+        
+        @Flag(name: .shortAndLong, help: "Show status updates for debugging purposes.")
+        var verbose = false
+    }
+    
+    enum FileType: CaseIterable {
+        case text
+        case markdown
+        
+        init?(filePath: String) {
+            guard let type = FileType.allCases.first(where: {
+                filePath.hasSuffix($0.fileExtension)
+            }) else {
+                return nil
+            }
+            self = type
+        }
+        
+        var fileExtension: String {
+            switch self {
+            case .text:
+                return ".txt"
+            case .markdown:
+                return ".md"
+            }
+        }
+    }
+    
+    // MARK: - Error
     
     struct RuntimeError: Error, CustomStringConvertible {
         var description: String
