@@ -16,6 +16,13 @@ Features of the readometer include:
 
 ### Usage
 
+###### [Mint](https://github.com/yonaskolb/mint)
+
+You can install Readometer using Mint:
+
+```
+mint install ajithrnayak/Readometer
+```
 
 ###### Manually
 
@@ -41,3 +48,5 @@ xed Package.swift
 ```bash
 swift run readometer --help
 ```
+
+### 
