@@ -21,7 +21,6 @@ struct Readometer: ParsableCommand {
 
 extension Readometer {
     
-    
     /// Helper function to extract contents of a given file
     /// - Parameter filePath: A path to the file
     /// - Returns: Text content after reading the file.
@@ -49,7 +48,19 @@ extension Readometer {
             
         case .markdown:
             // Strip Markdown syntax if necessary
-            guard let regex = try? NSRegularExpression(pattern: #"\[.*?\]\((.*?)\)"#) else {
+            /**
+             Regex Logic:
+             Links (with or without images)
+             Bold text (**...** or __...__)
+             Inline code (... or ...)
+             Italic text (*...* or _..._)
+             Headings (# ... followed by a newline)
+             Horizontal rules (--- or ___ or *** followed by a newline)
+             Code blocks (````...```\n` followed by one or more lines of text)
+             */
+            guard let regex = try? NSRegularExpression(
+                pattern: #"(!?\[.*?\]\(.*?\))|(\*\*.*?\*\*)|(__.*?__)|(`.*?`)|(\*.*?\*)|(_.*?_)|#.*?\n|\n-{3,}\n|`{3}.*?\n|`.*?`"#
+            ) else {
                 throw RuntimeError("Failed to read Markdown file '\(inputFile)'!")
             }
             plainText = regex.stringByReplacingMatches(
@@ -59,6 +70,22 @@ extension Readometer {
         }
         
         return plainText
+    }
+    
+    /// Counts the number of unique words in a plain text string.
+    /// - Parameter plainText: The plain text string to count words in
+    /// - Returns: The number of unique words in the given plain text string
+    static func wordCount(from plainText: String) -> Int {
+        
+        // Split the plain text into words and remove any whitespace or non-alphanumeric characters.
+        let words = plainText.components(separatedBy: .whitespacesAndNewlines)
+            .map { word in
+                word.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+                    .lowercased()
+            }
+            .compactMap { $0.isEmpty ? nil : $0 }
+        
+        return words.count
     }
         
     // MARK: - Subcommands
@@ -89,7 +116,7 @@ extension Readometer {
             }
             
             // Calculate the estimated reading time in minutes
-            let wordCount = plainText.components(separatedBy: .whitespacesAndNewlines).count
+            let wordCount = Readometer.wordCount(from: plainText)
             let readingTime = Double(wordCount) / Double(Readometer.Estimate.averageReadingSpeed)
             
             print("✨✨✨\nEstimated reading time: \(Int(readingTime.rounded())) minutes\n✨✨✨")
@@ -105,41 +132,22 @@ extension Readometer {
         mutating func run() throws {
             
             // Get the path to the file
-            var inputFile: String? = options.inputFilePath?.pathString
+            var inputFile: FilePath? = options.inputFilePath
             // if users are familiar with argument, we will make their life easy.
             if let filePath = options.filePath {
-                inputFile = filePath.pathString
+                inputFile = filePath
             }
             
-            guard let inputFile = inputFile, !inputFile.isEmpty else {
-                throw RuntimeError("Please provide the path to a file as an argument.")
-            }
+            // Extract only text contents from the file
+            let plainText = try Readometer.getFileContents(from: inputFile)
             
             if options.verbose {
-                print("Estimating reading time for '\(inputFile)'")
+                print("Calculating word count for '\(String(describing: inputFile?.pathString))'")
             }
             
-            // Load the contents of the file into a string
-            guard let fileContents = try? String(contentsOfFile: inputFile) else {
-                throw RuntimeError("Couldn't read from '\(inputFile)'!")
-            }
+            let wordCount = Readometer.wordCount(from: plainText)
             
-            let words = fileContents.components(separatedBy: .whitespacesAndNewlines)
-                .map { word in
-                    word.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-                        .lowercased()
-                }
-                .compactMap { word in word.isEmpty ? nil : word }
-            
-            let counts = Dictionary(grouping: words, by: { $0 })
-                .mapValues { $0.count }
-                .sorted(by: { $0.value > $1.value })
-            
-            if options.verbose {
-                print("Found \(counts.count) words.")
-            }
-            
-            print("Word Count: \(counts.count)")
+            print("🎉🎉🎉\nWord Count: \(wordCount)\n🎉🎉🎉")
         }
     }
     
