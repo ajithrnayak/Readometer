@@ -17,6 +17,16 @@ Features of the readometer include:
 ### Usage
 
 
+###### Manually
+
+Build the tool using the release configuration, and then move the compiled binary to `/usr/local/bin` :
+
+```bash
+swift build -c release
+cd .build/release
+cp -f Readometer /usr/local/bin/readometer
+```
+
 
 ### Development
 
