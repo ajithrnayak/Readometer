@@ -12,7 +12,7 @@ import ArgumentParser
 struct Readometer: ParsableCommand {
     
     static let configuration = CommandConfiguration(
-        abstract: "A Swift command-line tool for estimating the reading time of articles",
+        abstract: "A Swift command-line tool for estimating the reading time of articles.",
         subcommands: [Estimate.self, WordCount.self],
         defaultSubcommand: Estimate.self
     )
@@ -95,7 +95,7 @@ extension Readometer {
         // Defines the average reading speed in words per minute (wpm)
         static let averageReadingSpeed = 200
         
-        static let configuration = CommandConfiguration(abstract: "Estimate Reading Time")
+        static let configuration = CommandConfiguration(abstract: "Estimates Reading Time.")
         
         @OptionGroup var options: Options
         
@@ -125,7 +125,7 @@ extension Readometer {
     
     struct WordCount: ParsableCommand {
         
-        public static let configuration = CommandConfiguration(abstract: "Word counter")
+        public static let configuration = CommandConfiguration(abstract: "Word Counter.")
         
         @OptionGroup var options: Options
         
