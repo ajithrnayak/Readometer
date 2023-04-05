@@ -1,7 +1,7 @@
 # Readometer
 A Swift command-line tool for estimating the reading time of articles. It works perfectly with plain text as well as markdown.
 
-<p align="center">
+<p>
   <img src="https://img.shields.io/badge/language-swift5.8-f48041.svg?style=flat"/>
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat"/>
   <a href="https://twitter.com/ajithrnayak">
