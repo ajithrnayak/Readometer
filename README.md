@@ -53,4 +53,6 @@ xed Package.swift
 swift run readometer --help
 ```
 
-### 
+### Todo
+- Use https://blog.medium.com/read-time-and-you-bc2048ab620c to improve the estimation logic.
+- Improve the logic for stripping markdown syntax.
